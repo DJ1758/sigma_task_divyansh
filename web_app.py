@@ -1,17 +1,17 @@
 from ast import main
 import streamlit as st
 import pandas as pd
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 import geopandas as gpd
 
-# Load the dataset
-#@st.cache_data
+
 def load_data():
-    df = pd.read_csv("Forbes_global_2000_with_continent.csv")
+    df = pd.read_csv("D:\Pandas\Sigma_Task\Forbes_global_2000_with_continent.csv")
     return df
 def load_data1():
-    df_og=pd.read_csv("Forbes Global 2000 (Year 2022).xlsx - Sheet1.csv")
+    df_og=pd.read_csv("D:\Pandas\Sigma_Task\Forbes Global 2000 (Year 2022).xlsx - Sheet1.csv")
     return df_og
 df_og=load_data()
 df = load_data()
@@ -30,7 +30,8 @@ analysis_task = st.sidebar.selectbox('Select Analysis Task', [
     'Categorical Analysis - Continent',
     'Correlation Analysis',
     'Top 10s',
-    'Geographical Analysis'
+    'Geographical Analysis',
+    'Conclusion'
 
 ])
 
@@ -38,13 +39,17 @@ analysis_task = st.sidebar.selectbox('Select Analysis Task', [
 if analysis_task=='Data Cleaning & Preprocessing':
     st.subheader("Data Cleaning and Preprocessing")
     st.dataframe(df)
-    st.markdown("Here, we have added a column 'continent' and changed the name of the country 'United States' to 'United States of America for further use.")
-    st.markdown("We have also assumed Cayman Islands and Bermuda to be the countries in North America.")
-
+   
+    st.markdown("""
+                - I have added a column 'continent' and changed the name of the country 'United States' to 'United States of America' for further use.
+                - I have also assumed Cayman Islands and Bermuda to be in North America.
+                - I have also changed the data type of "Rank_nr" column from object to int64.
+                - There was one row with value in "Rank_nr" as "TRUE" which was replaced with the correct value.
+                """)
 elif analysis_task == 'Descriptive Statistics':
 
     st.subheader('Descriptive Statistics')
-    st.markdown("Here, we will give general information about the numeric columns of the given dataset.")
+    st.markdown("In this section, the general information about the numeric columns of the given dataset is displayed.")
     st.write(df.describe())
 
 
@@ -53,153 +58,162 @@ elif analysis_task == 'Categorical Analysis - Industry':
 
     industry_counts = df['Industry'].value_counts()
     st.markdown("This section shows the number of companies belonging to various industries.")
-# Create the bar chart
+
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.bar(industry_counts.index, industry_counts.values)
     ax.set_xlabel('Industry')
     ax.set_ylabel('Count')
     ax.set_title('Companies by Industry')
     ax.tick_params(axis='x', rotation=90)
-
-# Display the bar chart using Streamlit
+    
     st.pyplot(fig)
+    
+    industry_counts = df['Industry'].value_counts()
+    industry_names=industry_counts.index
+    cmap = plt.cm.get_cmap('tab20b')
+    colors = cmap(np.linspace(0, 1, 26))
+    
+    fig_pie, ax_pie = plt.subplots()
+    ax_pie.pie(industry_counts, labels=industry_names,wedgeprops={'edgecolor':'black'} ,colors=colors, radius=2)
+    ax_pie.set_aspect('equal')
+    st.pyplot(fig_pie)
+    
 
+    st.markdown("Distribution of Profits over industries")
+    plt.figure(figsize=(12, 8))
+    df.boxplot(column='Profits', by='Industry', vert=True)
+    plt.xlabel('Industry')
+    plt.ylabel('Profits')
+    plt.title('Distribution of Profits over Industries')
+    plt.tight_layout()
+    plt.xticks(rotation=90)
+    st.pyplot(plt.gcf())
+    st.markdown("""
+    - The industries with highest profits were Banking and Oil&Gas Operations.
+    - The Semiconductors Industry had the largest interquantile range suggesting the most consistent profits in a single sector.
+    - IT Software & Services has the greatest profit-loss range.
+    - Industry operating with greatest losses is IT Software & Services. 
+    """)
+    
+  
 elif analysis_task == 'Categorical Analysis - Continent':
-    st.subheader('Categorical Analysis - Country')
+    st.subheader('Categorical Analysis - Continent')
     continent_counts = df['continent'].value_counts()
-
-# Create the bar chart
     fig1, ax1 = plt.subplots(figsize=(10, 6))
     ax1.bar(continent_counts.index, continent_counts.values)
     ax1.set_xlabel('Continent')
     ax1.set_ylabel('Count')
     ax1.set_title('Companies by Continent')
     ax1.tick_params(axis='x', rotation=90)
-
-# Display the bar chart using Streamlit
     st.pyplot(fig1)
 
 
 
 elif analysis_task == 'Correlation Analysis':
     st.subheader('Correlation Analysis')
-    st.markdown("In this section, we have given the Correlation Analysis of numeric columns of the dataset ")
+    st.markdown("In this section, I have displayed the Correlation Analysis of numeric columns of the dataset ")
 
     correlation_matrix = numeric_columns.corr()
     st.write(correlation_matrix)
     fig2, ax2 = plt.subplots()
     sns.heatmap(correlation_matrix, ax=ax2)
     st.write(fig2)
+
+
 elif analysis_task=='Geographical Analysis':
     st.markdown("The map shows the top 10 countries with highest number of companies in Forbes Global 2000 2022 list ")
     st.markdown("Top ten countries are highlighted with Blue.")
-# Load the data
-    top_countries=df['Country'].value_counts().head(10)
-    # Load the world shapefile
+    top_countries=df['Country'].value_counts().head(10)    
     world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
-
-# Merge the world shapefile with the top countries data
     merged = world.merge(top_countries, left_on='name', right_index=True, how='left')
-
-# Create a Streamlit app
     st.title('Top Countries with Highest Number of Companies')
-
-# Plot the world map using Streamlit
     fig3, ax3 = plt.subplots(figsize=(15, 10))
     world.boundary.plot(ax=ax3, linewidth=0.8, color='black')
     merged.plot(column='name', cmap='YlOrRd', linewidth=0.8, ax=ax3, edgecolor='0.8', legend=False)
-
-# Set color for the top 10 countries
     highlight_color = 'blue'
     highlighted_countries = merged[merged['name'].isin(top_countries.index)]
     highlighted_countries.plot(color=highlight_color, ax=ax3)
 
-# Create a legend-like text
     legend_text = []
     for Country, count in top_countries.items():
         legend_text.append(f'{Country}: {count}')
 
-# Display the legend text
-    st.text('\n'.join(legend_text))
 
-# Display the map in Streamlit
-    
-# Display the legend text
-    #st.text('\n'.join(legend_text))
+    st.text('\n'.join(legend_text))  
 
-# Display the map in Streamlit
     st.pyplot(fig3)
-    st.markdown("Here is the list of top five industries according to their market value in the different continents.")
+    st.markdown("List of top five industries according to their profits in the different continents.")
     st.markdown("Africa")
     africa_df = df[df['continent'] == 'Africa']
 
-# Group by industry and calculate sum of market values
-    grouped_africa = africa_df.groupby('Industry')['Market_Value'].sum()
 
-# Sort the industries based on market value in descending order
+    grouped_africa = africa_df.groupby('Industry')['Profits'].sum()
+
+
     top_industries_continent_africa = grouped_africa.sort_values(ascending=False).head(5)
 
-# Display the top 5 industries in Africa with highest market value
+
     st.write(top_industries_continent_africa)
     st.markdown("Asia")
     asia_df = df[df['continent'] == 'Asia']
 
-# Group by industry and calculate sum of market values
-    grouped_asia = asia_df.groupby('Industry')['Market_Value'].sum()
 
-# Sort the industries based on market value in descending order
+    grouped_asia = asia_df.groupby('Industry')['Profits'].sum()
+
+
     top_industries_continent_asia = grouped_asia.sort_values(ascending=False).head(5)
 
-# Display the top 5 industries in Africa with highest market value
+
     st.write(top_industries_continent_asia)
     st.markdown("Europe")
     europe_df = df[df['continent'] == 'Europe']
 
-# Group by industry and calculate sum of market values
-    grouped_europe = europe_df.groupby('Industry')['Market_Value'].sum()
 
-# Sort the industries based on market value in descending order
+    grouped_europe = europe_df.groupby('Industry')['Profits'].sum()
+
+
     top_industries_continent_europe = grouped_europe.sort_values(ascending=False).head(5)
 
-# Display the top 5 industries in Africa with highest market value
+
     st.write(top_industries_continent_europe)
 
     st.markdown("Oceania")
     oceania_df = df[df['continent'] == 'Oceania']
 
-# Group by industry and calculate sum of market values
-    grouped_oceania = oceania_df.groupby('Industry')['Market_Value'].sum()
 
-# Sort the industries based on market value in descending order
+    grouped_oceania = oceania_df.groupby('Industry')['Profits'].sum()
+
+
     top_industries_continent_oceania = grouped_oceania.sort_values(ascending=False).head(5)
 
-# Display the top 5 industries in Africa with highest market value
+
     st.write(top_industries_continent_oceania)
 
     st.markdown("North America")
     
     na_df = df[df['continent'] == 'North America']
 
-# Group by industry and calculate sum of market values
-    grouped_na = na_df.groupby('Industry')['Market_Value'].sum()
 
-# Sort the industries based on market value in descending order
+    grouped_na = na_df.groupby('Industry')['Profits'].sum()
+
+
     top_industries_continent_na = grouped_na.sort_values(ascending=False).head(5)
 
-# Display the top 5 industries in Africa with highest market value
+
     st.write(top_industries_continent_na)
 
     st.markdown("South America")
     sa_df = df[df['continent'] == 'South America']
 
-# Group by industry and calculate sum of market values
-    grouped_sa = sa_df.groupby('Industry')['Market_Value'].sum()
 
-# Sort the industries based on market value in descending order
+    grouped_sa = sa_df.groupby('Industry')['Profits'].sum()
+
+
     top_industries_continent_sa = grouped_sa.sort_values(ascending=False).head(5)
 
-# Display the top 5 industries in Africa with highest market value
+
     st.write(top_industries_continent_sa)
+    
 
 elif analysis_task=='Top 10s':
     st.subheader("Companies")
@@ -261,14 +275,41 @@ elif analysis_task=='Top 10s':
     top_industries_sale=sale_industry.nlargest(10)
     st.write(top_industries_sale)
 
+elif analysis_task=='Conclusion':
+    st.subheader("Conclusion")
+    st.markdown("To conlude, I restate the research questions and answer them explicity based on my findings:")
+    st.markdown("""
+                - 122 companies out of 2000 companies were operating in loss. 
+                    - Kuaishou Technology (China), Telecom Italia (Italy), and Carnival Corporation (USA) were the companies with highest losses.
+                - What are the top companies ranked by sales, profits, assets and market value respectively? Which countries do they operate in?
+                    - Listing only the top 3 for brevity:
+                    - Sales: Walmart (USA), Amazon (USA), Saudi Arabian Oil Company (Saudi Aramco) (Saudi Arabia)
+                    - Profits: Saudi Arabian Oil Company (Saudi Aramco) (Saudi Arabia), Apple (USA), Berkshire Hathaway (USA)
+                    - Assets: ICBC, China Construction Bank, and Agricultural Bank of China; all operating in China
+                    - Market Value: Apple (USA), Saudi Arabian Oil Company (Saudi Aramco) (Saudi Arabia), Microsoft (USA)
+                - What are the top profit-making industries across continents?
+                    - Africa: Media, Materials, Banking
+                    - South America: Materials, Oil & GasOperations, Banking
+                    - Asia: Banking, Oil & Gas Operations, Consumer Durables 
+                    - Europe: Banking, Oil & Gas Operations, Consumer Durables 
+                    - Oceania: Materials, Banking, Food Market
+                    - North America: Diversified Financials, IT Software & Services, Banking
+                - How are profits distributed across industries?
+                    - The industries with highest profits were Banking and Oil&Gas Operations.
+                    - The Semiconductors Industry had the largest interquantile range suggesting the most consistent profits in a single sector.
+                    - IT Software & Services has the greatest profit-loss range.
+                    - Industry operating with greatest losses is IT Software & Services.    
+                - How are industries distributed in the Forbes ranking for this year?
+                    - The most represented industries were Banking (290), Diversified Financials (146), and Construction (127).
+                    - The least represented industries were Media (25), Hotels,Restaurants & Leisure (19), and Aerospace & Defence (18)
+                """)
+
 if __name__ == '__main__':
     main()    
 
 
     
 
-#top_countries=df['Country'].value_counts().head(10)
-#print(top_countries)
 
 
 

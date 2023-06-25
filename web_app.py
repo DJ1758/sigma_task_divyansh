@@ -8,10 +8,10 @@ import geopandas as gpd
 # Load the dataset
 #@st.cache_data
 def load_data():
-    df = pd.read_csv(f"D:\Pandas\Sigma_Task\Forbes_global_2000_with_continent.csv")
+    df = pd.read_csv("Forbes_global_2000_with_continent.csv")
     return df
 def load_data1():
-    df_og=pd.read_csv("D:\Pandas\Sigma_Task\Forbes Global 2000 (Year 2022).xlsx - Sheet1.csv")
+    df_og=pd.read_csv("Forbes Global 2000 (Year 2022).xlsx - Sheet1.csv")
     return df_og
 df_og=load_data()
 df = load_data()
